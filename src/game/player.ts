@@ -16,6 +16,7 @@ export class PlayerCharacter {
   tileSizePx: number;
   facing: FacingDirection;
   animator: SpriteAnimator;
+  isBlocked: (tx: number, ty: number) => boolean;
 
   constructor(
     tileMap: Tilemap,
@@ -23,6 +24,7 @@ export class PlayerCharacter {
     startTileY: number,
     tilesPerSecond: number,
     spriteSheet: SpriteSheet,
+    isBlocked: (tx: number, ty: number) => boolean,
   ) {
     this.tileMap = tileMap;
     this.tileX = startTileX;
@@ -36,97 +38,96 @@ export class PlayerCharacter {
     this.tilesPerSecond = tilesPerSecond;
     this.facing = "down";
     this.animator = new SpriteAnimator(spriteSheet, 2, 8);
+    this.isBlocked = isBlocked;
+  }
+
+  private getFacing(
+    dx: number,
+    dy: number,
+    current: FacingDirection,
+  ): FacingDirection {
+    if (dy > 0) return "down";
+    if (dy < 0) return "up";
+    if (dx > 0) return "right";
+    if (dx < 0) return "left";
+    return current;
   }
 
   tryQueueStep(dx: number, dy: number) {
-    const nextTileX = this.tileX + dx;
-    const nextTileY = this.tileY + dy;
-    if (this.tileMap.isSolidTile(nextTileX, nextTileY)) return;
-    this.tileX = nextTileX;
-    this.tileY = nextTileY;
+    const nx = this.tileX + dx;
+    const ny = this.tileY + dy;
+    this.facing = this.getFacing(dx, dy, this.facing);
+    if (dx === 0 && dy === 0) return;
+    if (this.isBlocked(nx, ny)) return;
+    this.tileX = nx;
+    this.tileY = ny;
     this.targetPixelX = this.tileX * this.tileSizePx;
     this.targetPixelY = this.tileY * this.tileSizePx;
     this.isStepping = true;
   }
-
-  handleInputActions(input: Input): void {
+  handleInputActions(input: Input) {
     if (this.isStepping) return;
-    if (input.actionDown("left")) {
-      this.facing = "left";
-      this.tryQueueStep(-1, 0);
-      return;
-    }
-    if (input.actionDown("right")) {
-      this.facing = "right";
-      this.tryQueueStep(1, 0);
-      return;
-    }
-    if (input.actionDown("up")) {
-      this.facing = "up";
-      this.tryQueueStep(0, -1);
-      return;
-    }
-    if (input.actionDown("down")) {
-      this.facing = "down";
-      this.tryQueueStep(0, 1);
-      return;
-    }
+    const dx =
+      (input.actionDown("right") ? 1 : 0) + (input.actionDown("left") ? -1 : 0);
+    const dy =
+      (input.actionDown("down") ? 1 : 0) + (input.actionDown("up") ? -1 : 0);
+    const sx = dx !== 0 ? Math.sign(dx) : 0;
+    const sy = dy !== 0 ? Math.sign(dy) : 0;
+    if (sx !== 0 || sy !== 0) this.tryQueueStep(sx, sy);
   }
-
-  update(input: Input, dt: number): void {
+  update(input: Input, dt: number) {
     this.handleInputActions(input);
     if (this.isStepping) {
-      const pixelsPerSec = this.tilesPerSecond * this.tileSizePx;
+      const v = this.tilesPerSecond * this.tileSizePx;
       const dx = this.targetPixelX - this.pixelX;
       const dy = this.targetPixelY - this.pixelY;
-      const stepX = Math.sign(dx) * pixelsPerSec * dt;
-      const stepY = Math.sign(dy) * pixelsPerSec * dt;
-      if (Math.abs(stepX) > Math.abs(dx)) {
-        this.pixelX = this.targetPixelX;
-      } else {
-        this.pixelX += stepX;
-      }
-
-      if (Math.abs(stepY) > Math.abs(dy)) {
-        this.pixelY = this.targetPixelY;
-      } else {
-        this.pixelY += stepY;
-      }
-
+      const sx = Math.sign(dx) * v * dt;
+      const sy = Math.sign(dy) * v * dt;
+      if (Math.abs(sx) >= Math.abs(dx)) this.pixelX = this.targetPixelX;
+      else this.pixelX += sx;
+      if (Math.abs(sy) >= Math.abs(dy)) this.pixelY = this.targetPixelY;
+      else this.pixelY += sy;
       if (
         this.pixelX === this.targetPixelX &&
         this.pixelY === this.targetPixelY
       )
         this.isStepping = false;
     }
-    const row =
-      this.facing === "down"
-        ? 0
-        : this.facing === "left"
-          ? 1
-          : this.facing === "right"
-            ? 2
-            : 3;
-    if (this.isStepping) {
-      this.animator.play(row);
-    } else {
-      this.animator.stop();
-    }
+    const movingNow =
+      this.isStepping ||
+      input.actionDown("left") ||
+      input.actionDown("right") ||
+      input.actionDown("up") ||
+      input.actionDown("down");
 
+    const row = this.getRowNum(this.facing);
+    if (movingNow) this.animator.play(row);
+    else this.animator.stop();
     this.animator.update(dt);
   }
 
-  draw(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {
-    const dx = Math.floor(this.pixelX - cameraX);
-    const dy = Math.floor(this.pixelY - cameraY);
-    this.animator.draw(ctx, dx, dy);
+  private readonly rowMap: Record<FacingDirection, number> = {
+    down: 0,
+    left: 1,
+    right: 2,
+    up: 3,
+  };
+
+  private getRowNum(facing: FacingDirection): number {
+    return this.rowMap[facing];
   }
 
-  centerX(): number {
+  draw(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number) {
+    this.animator.draw(
+      ctx,
+      Math.floor(this.pixelX - cameraX),
+      Math.floor(this.pixelY - cameraY),
+    );
+  }
+  centerX() {
     return this.pixelX + this.tileSizePx / 2;
   }
-
-  centerY(): number {
+  centerY() {
     return this.pixelY + this.tileSizePx / 2;
   }
 }

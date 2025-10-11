@@ -4,9 +4,10 @@ import { DebugOverlay } from "./ui/debug.js";
 import { Assets } from "./io/loader.js";
 import { Tilemap } from "./gfx/tilemap.js";
 import { Camera } from "./gfx/cameras.js";
-import { type MapSpec } from "./types/index.js";
 import { PlayerCharacter } from "./game/player.js";
 import { SpriteSheet } from "./gfx/sprites.js";
+import { NPC } from "./game/npc.js";
+import { InteractionController } from "./game/interact.js";
 
 const VIEWPORT_WIDTH = 320;
 const VIEWPORT_HEIGHT = 220;
@@ -21,6 +22,7 @@ back.height = VIEWPORT_HEIGHT;
 const input = new Input();
 const debug = new DebugOverlay();
 const assets = new Assets();
+const interactions = new InteractionController();
 
 let scale = 1;
 function resize() {
@@ -62,59 +64,15 @@ const tilesetDataURI =
 const playerSheetDataURI =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="64">
-      <g transform="translate(0,0)">
-        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ffb000"/>
-        <rect x="4" y="10" width="8" height="6" fill="#c46a00"/>
-        <rect x="5" y="5" width="2" height="2" fill="#000"/>
-        <rect x="9" y="5" width="2" height="2" fill="#000"/>
-      </g>
-      <g transform="translate(16,0)">
-        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ffb000"/>
-        <rect x="4" y="10" width="8" height="6" fill="#c46a00"/>
-        <rect x="5" y="5" width="2" height="2" fill="#000"/>
-        <rect x="9" y="5" width="2" height="2" fill="#000"/>
-        <rect x="4" y="13" width="2" height="2" fill="#ffd34d"/>
-      </g>
-      <g transform="translate(0,16)">
-        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ffb000"/>
-        <rect x="2" y="8" width="12" height="2" fill="#c46a00"/>
-        <rect x="3" y="5" width="2" height="2" fill="#000"/>
-        <rect x="11" y="5" width="2" height="2" fill="#000"/>
-      </g>
-      <g transform="translate(16,16)">
-        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ffb000"/>
-        <rect x="2" y="8" width="12" height="2" fill="#c46a00"/>
-        <rect x="3" y="5" width="2" height="2" fill="#000"/>
-        <rect x="11" y="5" width="2" height="2" fill="#000"/>
-        <rect x="12" y="10" width="2" height="2" fill="#ffd34d"/>
-      </g>
-      <g transform="translate(0,32)">
-        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ffb000"/>
-        <rect x="4" y="10" width="8" height="6" fill="#c46a00"/>
-        <rect x="4" y="5" width="2" height="2" fill="#000"/>
-        <rect x="10" y="5" width="2" height="2" fill="#000"/>
-      </g>
-      <g transform="translate(16,32)">
-        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ffb000"/>
-        <rect x="4" y="10" width="8" height="6" fill="#c46a00"/>
-        <rect x="4" y="5" width="2" height="2" fill="#000"/>
-        <rect x="10" y="5" width="2" height="2" fill="#000"/>
-        <rect x="12" y="13" width="2" height="2" fill="#ffd34d"/>
-      </g>
-      <g transform="translate(0,48)">
-        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ffb000"/>
-        <rect x="2" y="8" width="12" height="2" fill="#c46a00"/>
-        <rect x="5" y="5" width="2" height="2" fill="#000"/>
-        <rect x="9" y="5" width="2" height="2" fill="#000"/>
-      </g>
-      <g transform="translate(16,48)">
-        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ffb000"/>
-        <rect x="2" y="8" width="12" height="2" fill="#c46a00"/>
-        <rect x="5" y="5" width="2" height="2" fill="#000"/>
-        <rect x="9" y="5" width="2" height="2" fill="#000"/>
-        <rect x="4" y="10" width="2" height="2" fill="#ffd34d"/>
-      </g>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="64" shape-rendering="crispEdges">
+      <rect x="0" y="0" width="16" height="16" fill="#ffd54a"/>
+      <rect x="16" y="0" width="16" height="16" fill="#ffb300"/>
+      <rect x="0" y="16" width="16" height="16" fill="#4caf50"/>
+      <rect x="16" y="16" width="16" height="16" fill="#388e3c"/>
+      <rect x="0" y="32" width="16" height="16" fill="#42a5f5"/>
+      <rect x="16" y="32" width="16" height="16" fill="#1e88e5"/>
+      <rect x="0" y="48" width="16" height="16" fill="#ab47bc"/>
+      <rect x="16" y="48" width="16" height="16" fill="#8e24aa"/>
     </svg>`,
   );
 
@@ -149,13 +107,41 @@ assets
       tileMap.height * tileMap.tileSize,
     );
     const playerSheet = new SpriteSheet(playerImage, 16, 16, 2);
-    playerCharacter = new PlayerCharacter(tileMap, 2, 2, 6, playerSheet);
+    const isBlocked = (tx: number, ty: number) =>
+      tileMap.isSolidTile(tx, ty) || interactions.isNPCTile(tx, ty);
+    playerCharacter = new PlayerCharacter(
+      tileMap,
+      4,
+      4,
+      7,
+      playerSheet,
+      isBlocked,
+    );
+    interactions.addNPC(
+      new NPC(8, 4, tileMap.tileSize, "#66c2ff", [
+        "Hola, aventurero.",
+        "Pulsa Z para avanzar.",
+        "Suerte en tu viaje.",
+      ]),
+    );
+    interactions.addNPC(
+      new NPC(12, 10, tileMap.tileSize, "#ff6699", [
+        "Dicen que hay un tesoro al norte.",
+        "Pero el muro es alto.",
+        "Busca un desvío.",
+      ]),
+    );
     ready = true;
   });
 
 function update(dt: number) {
   if (ready) {
-    playerCharacter.update(input, dt);
+    if (interactions.dialogue.active) {
+      interactions.updateDuringDialogue(input);
+    } else {
+      playerCharacter.update(input, dt);
+      interactions.tryInteract(playerCharacter, input);
+    }
     camera.focus(playerCharacter.centerX(), playerCharacter.centerY());
   }
   if (input.actionPressed("debug")) debug.toggle();
@@ -174,7 +160,11 @@ function render() {
     bctx.fillText("LOADING...", VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2);
   } else {
     tileMap.draw(bctx, camera.x, camera.y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+    for (const npc of interactions.npcs) {
+      npc.draw(bctx, camera.x, camera.y);
+    }
     playerCharacter.draw(bctx, camera.x, camera.y);
+    interactions.draw(bctx, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
     bctx.strokeStyle = "rgba(255,255,255,0.06)";
     for (let i = 0; i <= VIEWPORT_WIDTH; i += 16) {
       bctx.beginPath();
