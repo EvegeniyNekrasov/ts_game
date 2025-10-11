@@ -5,6 +5,7 @@ import { Assets } from "./io/loader.js";
 import { Tilemap } from "./gfx/tilemap.js";
 import { Camera } from "./gfx/cameras.js";
 import { type MapSpec } from "./types/index.js";
+import { PlayerCharacter } from "./game/player.js";
 
 const WIDTH = 320;
 const HEIGHT = 180;
@@ -19,7 +20,7 @@ const input = new Input();
 const debug = new DebugOverlay();
 const assets = new Assets();
 
-let scale = 1;
+let scale = 4;
 function resize(): void {
   const ww: number = window.innerWidth;
   const wh: number = window.innerHeight;
@@ -36,6 +37,7 @@ const mapJson =
   'data:application/json,{"width":40,"height":22,"tileSize":16,"columns":2}';
 let tilemap: Tilemap;
 let camera: Camera;
+let playerCharacter: PlayerCharacter;
 
 assets
   .loadAll({
@@ -52,44 +54,16 @@ assets
       tilemap.width * tilemap.tileSize,
       tilemap.height * tilemap.tileSize,
     );
+    playerCharacter = new PlayerCharacter(tilemap, 2, 2, 6);
     ready = true;
   });
 
-let x = 24;
-let y = 24;
-const s = 16;
-const speed = 100;
-
-function tryMove(nx: number, ny: number): boolean {
-  const ts = tilemap.tileSize;
-  const left = Math.floor(nx / ts);
-  const right = Math.floor((nx + s - 1) / ts);
-  const top = Math.floor(ny / ts);
-  const bottom = Math.floor((ny + s - 1) / ts);
-
-  if (tilemap.isSolidTile(left, top)) return false;
-  if (tilemap.isSolidTile(right, top)) return false;
-  if (tilemap.isSolidTile(left, bottom)) return false;
-  if (tilemap.isSolidTile(right, bottom)) return false;
-  return true;
-}
-
-function handleInput(dt: number) {
-  if (!ready) return;
-  let nx = x;
-  let ny = y;
-  if (input.actionDown("left")) nx -= speed * dt;
-  if (input.actionDown("right")) nx += speed * dt;
-  if (input.actionDown("up")) ny -= speed * dt;
-  if (input.actionDown("down")) ny += speed * dt;
-  if (tryMove(nx, y)) x = nx;
-  if (tryMove(x, ny)) y = ny;
-  if (input.actionPressed("debug")) debug.toggle();
-}
-
 function update(dt: number) {
-  handleInput(dt);
-  if (ready) camera.focus(x + s / 2, y + s / 2);
+  if (ready) {
+    playerCharacter.update(input, dt);
+    camera.focus(playerCharacter.centerX(), playerCharacter.centerY());
+  }
+  if (input.actionPressed("debug")) debug.toggle();
   debug.update(dt);
   input.nextFrame();
 }
@@ -105,8 +79,7 @@ function render() {
     bctx.fillText("LOADING...", WIDTH / 2, HEIGHT / 2);
   } else {
     tilemap.draw(bctx, camera.x, camera.y, WIDTH, HEIGHT);
-    bctx.fillStyle = "#ffcc33";
-    bctx.fillRect(Math.floor(x - camera.x), Math.floor(y - camera.y), s, s);
+    playerCharacter.draw(bctx, camera.x, camera.y);
     bctx.strokeStyle = "rgba(255,255,255,0.06)";
     for (let i = 0; i <= WIDTH; i += 16) {
       bctx.beginPath();
