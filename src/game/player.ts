@@ -1,5 +1,7 @@
 import { type Tilemap } from "../gfx/tilemap.js";
 import { type Input } from "../io/input.js";
+import { type SpriteSheet, SpriteAnimator } from "../gfx/sprites.js";
+import { type FacingDirection } from "../types/index.js";
 
 export class PlayerCharacter {
   tileMap: Tilemap;
@@ -12,12 +14,15 @@ export class PlayerCharacter {
   isStepping: boolean;
   tilesPerSecond: number;
   tileSizePx: number;
+  facing: FacingDirection;
+  animator: SpriteAnimator;
 
   constructor(
     tileMap: Tilemap,
     startTileX: number,
     startTileY: number,
-    tilesPerSecond = 6,
+    tilesPerSecond: number,
+    spriteSheet: SpriteSheet,
   ) {
     this.tileMap = tileMap;
     this.tileX = startTileX;
@@ -29,6 +34,8 @@ export class PlayerCharacter {
     this.targetPixelY = this.pixelY;
     this.isStepping = false;
     this.tilesPerSecond = tilesPerSecond;
+    this.facing = "down";
+    this.animator = new SpriteAnimator(spriteSheet, 2, 8);
   }
 
   tryQueueStep(dx: number, dy: number) {
@@ -45,18 +52,22 @@ export class PlayerCharacter {
   handleInputActions(input: Input): void {
     if (this.isStepping) return;
     if (input.actionDown("left")) {
+      this.facing = "left";
       this.tryQueueStep(-1, 0);
       return;
     }
     if (input.actionDown("right")) {
+      this.facing = "right";
       this.tryQueueStep(1, 0);
       return;
     }
     if (input.actionDown("up")) {
+      this.facing = "up";
       this.tryQueueStep(0, -1);
       return;
     }
     if (input.actionDown("down")) {
+      this.facing = "down";
       this.tryQueueStep(0, 1);
       return;
     }
@@ -64,36 +75,51 @@ export class PlayerCharacter {
 
   update(input: Input, dt: number): void {
     this.handleInputActions(input);
-    if (!this.isStepping) return;
-    const pixelsPerSec = this.tilesPerSecond * this.tileSizePx;
-    const dx = this.targetPixelX - this.pixelX;
-    const dy = this.targetPixelY - this.pixelY;
-    const stepX = Math.sign(dx) * pixelsPerSec * dt;
-    const stepY = Math.sign(dy) * pixelsPerSec * dt;
-    if (Math.abs(stepX) > Math.abs(dx)) {
-      this.pixelX = this.targetPixelX;
+    if (this.isStepping) {
+      const pixelsPerSec = this.tilesPerSecond * this.tileSizePx;
+      const dx = this.targetPixelX - this.pixelX;
+      const dy = this.targetPixelY - this.pixelY;
+      const stepX = Math.sign(dx) * pixelsPerSec * dt;
+      const stepY = Math.sign(dy) * pixelsPerSec * dt;
+      if (Math.abs(stepX) > Math.abs(dx)) {
+        this.pixelX = this.targetPixelX;
+      } else {
+        this.pixelX += stepX;
+      }
+
+      if (Math.abs(stepY) > Math.abs(dy)) {
+        this.pixelY = this.targetPixelY;
+      } else {
+        this.pixelY += stepY;
+      }
+
+      if (
+        this.pixelX === this.targetPixelX &&
+        this.pixelY === this.targetPixelY
+      )
+        this.isStepping = false;
+    }
+    const row =
+      this.facing === "down"
+        ? 0
+        : this.facing === "left"
+          ? 1
+          : this.facing === "right"
+            ? 2
+            : 3;
+    if (this.isStepping) {
+      this.animator.play(row);
     } else {
-      this.pixelX += stepX;
+      this.animator.stop();
     }
 
-    if (Math.abs(stepY) > Math.abs(dy)) {
-      this.pixelY = this.targetPixelY;
-    } else {
-      this.pixelY += stepY;
-    }
-
-    if (this.pixelX === this.targetPixelX && this.pixelY === this.targetPixelY)
-      this.isStepping = false;
+    this.animator.update(dt);
   }
 
   draw(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {
-    ctx.fillStyle = "#ffcc33";
-    ctx.fillRect(
-      Math.floor(this.pixelX - cameraX),
-      Math.floor(this.pixelY - cameraY),
-      this.tileSizePx,
-      this.tileSizePx,
-    );
+    const dx = Math.floor(this.pixelX - cameraX);
+    const dy = Math.floor(this.pixelY - cameraY);
+    this.animator.draw(ctx, dx, dy);
   }
 
   centerX(): number {

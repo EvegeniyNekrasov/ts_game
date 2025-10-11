@@ -20,3 +20,5 @@ export type MapSpec = {
   tileSize: number;
   columns: number;
 };
+
+export type FacingDirection = "down" | "up" | "left" | "right";
