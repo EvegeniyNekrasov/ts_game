@@ -12,6 +12,8 @@ import { InteractionController } from "./game/interact.js";
 const VIEWPORT_WIDTH = 320;
 const VIEWPORT_HEIGHT = 220;
 const PIXE_ZISE = 16;
+const START_POSITION = 4;
+const TILES_PER_SECOND = 4;
 
 const screen_canvas = document.getElementById("screen") as HTMLCanvasElement;
 const ctx = screen_canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -78,16 +80,13 @@ assets
 
     const npc1 = new SpriteSheet(assets.getImage("npc1"), 16, 16, 3);
     const npc2 = new SpriteSheet(assets.getImage("npc2"), 16, 16, 3);
-    const npc3 = new SpriteSheet(assets.getImage("npc3"), 16, 16, 3);
-    const npc4 = new SpriteSheet(assets.getImage("npc4"), 16, 16, 3);
-    const npc5 = new SpriteSheet(assets.getImage("npc5"), 16, 16, 3);
-
     const tiles = assets.getImage("tiles");
 
     const tileset = assets.getImage("tiles");
     const playerImage = assets.getImage("player");
 
     tileMap = new Tilemap(spec, tileset);
+
     camera = new Camera(
       VIEWPORT_WIDTH,
       VIEWPORT_HEIGHT,
@@ -95,13 +94,15 @@ assets
       tileMap.height * tileMap.tileSize,
     );
     const playerSheet = new SpriteSheet(playerImage, PIXE_ZISE, PIXE_ZISE, 3);
+
     const isBlocked = (tx: number, ty: number) =>
       tileMap.isSolidTile(tx, ty) || interactions.isNPCTile(tx, ty);
+
     playerCharacter = new PlayerCharacter(
       tileMap,
-      4,
-      4,
-      7,
+      START_POSITION,
+      START_POSITION,
+      TILES_PER_SECOND,
       playerSheet,
       isBlocked,
     );
@@ -110,44 +111,27 @@ assets
         "Hola, aventurero.",
         "Pulsa Z para avanzar.",
         "Suerte en tu viaje.",
+        "max texto de prueba",
+        "alksdjalsjd",
+        "tortilla de patatas",
       ]),
     );
-    interactions.addNPC(
-      new NPC(12, 10, tileMap.tileSize, npc2, null, "left", [
-        "Dicen que hay un tesoro al norte.",
-        "Pero el muro es alto.",
-        "Busca un desvío.",
-      ]),
-    );
-    interactions.addNPC(
-      new NPC(6, 12, tileMap.tileSize, npc3, null, "right", [
-        "¿Has visto al sabio?",
-        "Suele pasear por el sur.",
-      ]),
-    );
-    interactions.addNPC(
-      new NPC(15, 6, tileMap.tileSize, npc4, null, "up", [
-        "Conocimiento es poder.",
-        "Escucha al viento.",
-      ]),
-    );
-    interactions.addNPC(
-      new NPC(20, 8, tileMap.tileSize, npc5, null, "down", [
-        "Zona restringida.",
-        "No cruces la muralla.",
-      ]),
-    );
-
     ready = true;
   });
 
 function update(dt: number) {
   if (ready) {
     if (interactions.dialogue.active) {
-      interactions.updateDuringDialogue(input);
+      interactions.update(input, dt);
     } else {
       playerCharacter.update(input, dt);
-      interactions.tryInteract(playerCharacter, input);
+      interactions.tryInteract(
+        playerCharacter,
+        input,
+        bctx,
+        back.width,
+        back.height,
+      );
     }
     camera.focus(playerCharacter.centerX(), playerCharacter.centerY());
   }
@@ -173,7 +157,7 @@ function render() {
     playerCharacter.draw(bctx, camera.x, camera.y);
     bctx.setTransform(1, 0, 0, 1, 0, 0);
     bctx.globalAlpha = 1;
-    interactions.draw(bctx, back.width, back.height);
+    interactions.draw(bctx);
     bctx.strokeStyle = "rgba(255,255,255,0.06)";
     for (let i = 0; i <= VIEWPORT_WIDTH; i += 16) {
       bctx.beginPath();
