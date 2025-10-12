@@ -22,3 +22,40 @@ export type MapSpec = {
 };
 
 export type FacingDirection = "down" | "up" | "left" | "right";
+
+export type MapJSON = {
+  tileSize: number;
+  columns: number;
+  width: number;
+  height: number;
+  groundRows: string[];
+  collisionRows: string[];
+  entities: {
+    type: "npc";
+    x: number;
+    y: number;
+    sprite: string;
+    facing: FacingDirection;
+    dialog: string[];
+  }[];
+  playerStart: { x: number; y: number };
+  triggers?: Trigger[];
+};
+
+export type TriggerDoor = {
+  type: "door";
+  x: number;
+  y: number;
+  toGroundId: number;
+  openText: string[];
+  opened?: boolean;
+};
+export type TriggerChest = {
+  type: "chest";
+  x: number;
+  y: number;
+  item: string;
+  openText: string[];
+  opened?: boolean;
+};
+export type Trigger = TriggerDoor | TriggerChest;

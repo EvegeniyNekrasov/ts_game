@@ -1,0 +1,48 @@
+{
+  "tileSize": 16,
+  "columns": 3,
+  "width": 20,
+  "height": 12,
+  "groundRows": [
+    "00000000000000000000",
+    "00000000000000000000",
+    "00000000000000000000",
+    "00000400001111100000",
+    "00000000002000100000",
+    "00000000001000100000",
+    "00000000001111100000",
+    "00000000000000000000",
+    "00000000000000000000",
+    "00000000000000000000",
+    "00000000000000000000",
+    "00000000000000000000"
+  ],
+  "collisionRows": [
+    "11111111111111111111",
+    "10000000000000000001",
+    "10000000000000000001",
+    "10000100001111100001",
+    "10000000001000100001",
+    "10000000001000100001",
+    "10000000001111100001",
+    "10000000000000000001",
+    "10000000000000000001",
+    "10000000000000000001",
+    "10000000000000000001",
+    "11111111111111111111"
+  ],
+  "entities": [
+    { "type": "npc", "x": 2, "y": 4, "sprite": "npc1", "facing": "down",
+      "dialog": ["Hola, aventurero.", "Pulsa Z para avanzar.", "Suerte en tu viaje."] },
+    { "type": "npc", "x": 12, "y": 6, "sprite": "npc2", "facing": "left",
+      "dialog": ["El mercado está cerrado.", "Vuelve mañana."] },
+    { "type": "npc", "x": 6, "y": 9, "sprite": "npc3", "facing": "right",
+      "dialog": ["¿Buscas trabajo?", "Habla con el guardia."] }
+  ],
+  "triggers": [
+    { "type": "door", "x": 10, "y": 4, "toGroundId": 3, "openText": ["La puerta se abre."] },
+    { "type": "chest","x": 5, "y": 3, "item": "llave", "openText": ["Has encontrado una llave."] }
+  ],
+  "playerStart": { "x": 4, "y": 4 }
+}
+

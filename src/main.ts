@@ -6,13 +6,13 @@ import { Tilemap } from "./gfx/tilemap.js";
 import { Camera } from "./gfx/cameras.js";
 import { PlayerCharacter } from "./game/player.js";
 import { SpriteSheet } from "./gfx/sprites.js";
-import { NPC } from "./game/npc.js";
 import { InteractionController } from "./game/interact.js";
+import { buildWorld } from "./game/world.js";
+import { type TriggerController } from "./game/triggers.js";
+import { type MapJSON } from "./types/index.js";
 
 const VIEWPORT_WIDTH = 320;
 const VIEWPORT_HEIGHT = 220;
-const PIXE_ZISE = 16;
-const START_POSITION = 4;
 const TILES_PER_SECOND = 4;
 
 const screen_canvas = document.getElementById("screen") as HTMLCanvasElement;
@@ -40,15 +40,11 @@ function resize() {
   debug.setScale(scale);
 }
 
-// Thanx to GPT XD
-
-const mapSpecDataURI =
-  'data:application/json,{"width":60,"height":34,"tileSize":16,"columns":2}';
-
 let ready = false;
 let tileMap: Tilemap;
 let camera: Camera;
 let playerCharacter: PlayerCharacter;
+let triggers: TriggerController;
 
 assets
   .loadAll({
@@ -61,61 +57,79 @@ assets
       npc4: "/assets/npc/sage_purple.png",
       npc5: "/assets/npc/guard_teal.png",
     },
-    json: { map: mapSpecDataURI },
+    json: { map: "/assets/maps/demo.json" },
   })
   .then(() => {
-    const base = assets.getJSON<{
-      width: number;
-      height: number;
-      tileSize: number;
-      columns: number;
-    }>("map");
+    const mapJson = assets.getJSON<MapJSON>("map");
 
-    const spec = assets.getJSON<{
-      width: number;
-      height: number;
-      tileSize: number;
-      columns: number;
-    }>("map");
+    const FRAME_DIMENTION = 16;
 
-    const npc1 = new SpriteSheet(assets.getImage("npc1"), 16, 16, 3);
-    const npc2 = new SpriteSheet(assets.getImage("npc2"), 16, 16, 3);
-    const tiles = assets.getImage("tiles");
+    const npcSheets = {
+      npc1: new SpriteSheet(
+        assets.getImage("npc1"),
+        FRAME_DIMENTION,
+        FRAME_DIMENTION,
+        3,
+      ),
+      npc2: new SpriteSheet(
+        assets.getImage("npc2"),
+        FRAME_DIMENTION,
+        FRAME_DIMENTION,
+        3,
+      ),
+      npc3: new SpriteSheet(
+        assets.getImage("npc3"),
+        FRAME_DIMENTION,
+        FRAME_DIMENTION,
+        3,
+      ),
+      npc4: new SpriteSheet(
+        assets.getImage("npc4"),
+        FRAME_DIMENTION,
+        FRAME_DIMENTION,
+        3,
+      ),
+      npc5: new SpriteSheet(
+        assets.getImage("npc5"),
+        FRAME_DIMENTION,
+        FRAME_DIMENTION,
+        3,
+      ),
+    };
 
-    const tileset = assets.getImage("tiles");
-    const playerImage = assets.getImage("player");
+    const tilesImage = assets.getImage("tiles");
+    const world = buildWorld(mapJson, tilesImage, npcSheets);
 
-    tileMap = new Tilemap(spec, tileset);
-
+    tileMap = world.tilemap;
+    triggers = world.triggers;
     camera = new Camera(
       VIEWPORT_WIDTH,
       VIEWPORT_HEIGHT,
       tileMap.width * tileMap.tileSize,
       tileMap.height * tileMap.tileSize,
     );
-    const playerSheet = new SpriteSheet(playerImage, PIXE_ZISE, PIXE_ZISE, 3);
+
+    for (const n of world.npcs) interactions.addNPC(n);
+
+    const playerSheet = new SpriteSheet(
+      assets.getImage("player"),
+      FRAME_DIMENTION,
+      FRAME_DIMENTION,
+      3,
+    );
 
     const isBlocked = (tx: number, ty: number) =>
       tileMap.isSolidTile(tx, ty) || interactions.isNPCTile(tx, ty);
 
     playerCharacter = new PlayerCharacter(
       tileMap,
-      START_POSITION,
-      START_POSITION,
+      world.playerStart.x,
+      world.playerStart.y,
       TILES_PER_SECOND,
       playerSheet,
       isBlocked,
     );
-    interactions.addNPC(
-      new NPC(8, 4, tileMap.tileSize, npc1, null, "down", [
-        "Hola, aventurero.",
-        "Pulsa Z para avanzar.",
-        "Suerte en tu viaje.",
-        "max texto de prueba",
-        "alksdjalsjd",
-        "tortilla de patatas",
-      ]),
-    );
+
     ready = true;
   });
 
@@ -128,6 +142,15 @@ function update(dt: number) {
       interactions.tryInteract(
         playerCharacter,
         input,
+        bctx,
+        back.width,
+        back.height,
+      );
+      triggers.tryUse(
+        playerCharacter,
+        input.actionPressed("action"),
+        tileMap,
+        interactions.dialogue,
         bctx,
         back.width,
         back.height,
@@ -151,13 +174,27 @@ function render() {
     bctx.fillText("LOADING...", VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2);
   } else {
     tileMap.draw(bctx, camera.x, camera.y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-    for (const npc of interactions.npcs) {
-      npc.draw(bctx, camera.x, camera.y);
-    }
+    for (const npc of interactions.npcs) npc.draw(bctx, camera.x, camera.y);
     playerCharacter.draw(bctx, camera.x, camera.y);
-    bctx.setTransform(1, 0, 0, 1, 0, 0);
-    bctx.globalAlpha = 1;
-    interactions.draw(bctx);
+
+    const f = triggers.facingCell(
+      playerCharacter.tileX,
+      playerCharacter.tileY,
+      playerCharacter.facing,
+    );
+    bctx.save();
+    bctx.globalAlpha = 0.25;
+    bctx.fillStyle = "#ff0";
+    bctx.fillRect(
+      f.x * tileMap.tileSize - camera.x,
+      f.y * tileMap.tileSize - camera.y,
+      tileMap.tileSize,
+      tileMap.tileSize,
+    );
+    bctx.restore();
+
+    triggers.draw(bctx, camera.x, camera.y, tileMap.tileSize);
+
     bctx.strokeStyle = "rgba(255,255,255,0.06)";
     for (let i = 0; i <= VIEWPORT_WIDTH; i += 16) {
       bctx.beginPath();
@@ -171,6 +208,10 @@ function render() {
       bctx.lineTo(VIEWPORT_WIDTH, j + 0.5);
       bctx.stroke();
     }
+
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.globalAlpha = 1;
+    interactions.draw(bctx);
     debug.draw(bctx, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
   }
   ctx.imageSmoothingEnabled = false;

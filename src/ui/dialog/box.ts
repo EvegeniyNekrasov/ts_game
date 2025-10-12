@@ -28,7 +28,9 @@ export class DialogUI {
     this.boxW = viewportW - 12;
     this.boxY = viewportH - this.boxH - 6;
     this.active = true;
-
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
     ctx.font = "10px monospace";
     this.printer.open(ctx, lines, this.boxW - this.margin * 2, 3);
   }
@@ -67,6 +69,9 @@ export class DialogUI {
 
     ctx.save();
     ctx.fillStyle = "rgba(0,0,0,0.85)";
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = "rgba(225,225,225,0.25)";
     ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);

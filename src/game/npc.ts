@@ -1,6 +1,5 @@
-import { SpriteSheet } from "../gfx/sprites.js";
-
-export type Facing = "down" | "left" | "right" | "up";
+import { type SpriteSheet } from "../gfx/sprites.js";
+import { type FacingDirection } from "../types/index.js";
 
 export class NPC {
   tileX: number;
@@ -10,7 +9,7 @@ export class NPC {
   pixelY: number;
   sheet: SpriteSheet | null;
   color: string | null;
-  facing: Facing;
+  facing: FacingDirection;
   dialog: string[];
   constructor(
     tileX: number,
@@ -18,7 +17,7 @@ export class NPC {
     tileSizePx: number,
     sheet: SpriteSheet | null,
     color: string | null,
-    facing: Facing,
+    facing: FacingDirection,
     dialog: string[],
   ) {
     this.tileX = tileX;

@@ -20,7 +20,7 @@ export class Tilemap {
     this.generate();
   }
 
-  generate(): void {
+  public generate(): void {
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
         const i = y * this.width + x;
@@ -47,16 +47,16 @@ export class Tilemap {
     }
   }
 
-  index(x: number, y: number): number {
+  public index(x: number, y: number): number {
     return y * this.width + x;
   }
 
-  isSolidTile(tx: number, ty: number): boolean {
+  public isSolidTile(tx: number, ty: number): boolean {
     if (tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) return true;
     return this.collision[this.index(tx, ty)] === 1;
   }
 
-  draw(
+  public draw(
     ctx: CanvasRenderingContext2D,
     camx: number,
     camy: number,
@@ -93,5 +93,27 @@ export class Tilemap {
         );
       }
     }
+  }
+
+  public setGroundFromArray(arr: number[]) {
+    const len = this.width * this.height;
+    if (arr.length !== len) throw new Error("ground length mismatch");
+    for (let i = 0; i < len; i++) this.ground[i] = arr[i] | 0;
+  }
+
+  public setCollisionFromArray(arr: number[]) {
+    const len = this.width * this.height;
+    if (arr.length !== len) throw new Error("collision length mismatch");
+    for (let i = 0; i < len; i++) this.collision[i] = arr[i] ? 1 : 0;
+  }
+
+  public setGroundAt(tx: number, ty: number, id: number) {
+    if (tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) return;
+    this.ground[this.index(tx, ty)] = id | 0;
+  }
+
+  public setCollisionAt(tx: number, ty: number, solid: boolean) {
+    if (tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) return;
+    this.collision[this.index(tx, ty)] = solid ? 1 : 0;
   }
 }
