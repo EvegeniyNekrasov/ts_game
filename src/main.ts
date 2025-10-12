@@ -11,6 +11,7 @@ import { InteractionController } from "./game/interact.js";
 
 const VIEWPORT_WIDTH = 320;
 const VIEWPORT_HEIGHT = 220;
+const PIXE_ZISE = 16;
 
 const screen_canvas = document.getElementById("screen") as HTMLCanvasElement;
 const ctx = screen_canvas.getContext("2d") as CanvasRenderingContext2D;
@@ -38,43 +39,6 @@ function resize() {
 }
 
 // Thanx to GPT XD
-const tilesetDataURI =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="16">
-      <defs>
-        <pattern id="floor" width="4" height="4" patternUnits="userSpaceOnUse">
-          <rect width="4" height="4" fill="#1e1e1e"/>
-          <rect width="2" height="2" fill="#232323"/>
-          <rect x="2" y="2" width="2" height="2" fill="#232323"/>
-        </pattern>
-        <pattern id="brick" width="8" height="8" patternUnits="userSpaceOnUse">
-          <rect width="8" height="8" fill="#2a2a2a"/>
-          <rect x="0" y="0" width="8" height="1" fill="#141414"/>
-          <rect x="0" y="4" width="8" height="1" fill="#141414"/>
-          <rect x="0" y="0" width="1" height="4" fill="#141414"/>
-          <rect x="4" y="4" width="1" height="4" fill="#141414"/>
-        </pattern>
-      </defs>
-      <rect x="0" y="0" width="16" height="16" fill="url(#floor)"/>
-      <rect x="16" y="0" width="16" height="16" fill="url(#brick)"/>
-    </svg>`,
-  );
-
-const playerSheetDataURI =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="64" shape-rendering="crispEdges">
-      <rect x="0" y="0" width="16" height="16" fill="#ffd54a"/>
-      <rect x="16" y="0" width="16" height="16" fill="#ffb300"/>
-      <rect x="0" y="16" width="16" height="16" fill="#4caf50"/>
-      <rect x="16" y="16" width="16" height="16" fill="#388e3c"/>
-      <rect x="0" y="32" width="16" height="16" fill="#42a5f5"/>
-      <rect x="16" y="32" width="16" height="16" fill="#1e88e5"/>
-      <rect x="0" y="48" width="16" height="16" fill="#ab47bc"/>
-      <rect x="16" y="48" width="16" height="16" fill="#8e24aa"/>
-    </svg>`,
-  );
 
 const mapSpecDataURI =
   'data:application/json,{"width":60,"height":34,"tileSize":16,"columns":2}';
@@ -86,16 +50,40 @@ let playerCharacter: PlayerCharacter;
 
 assets
   .loadAll({
-    images: { tiles: tilesetDataURI, player: playerSheetDataURI },
+    images: {
+      tiles: "/assets/tiles/tiles.png",
+      player: "/assets/sprites/player.png",
+      npc1: "/assets/npc/villager_red.png",
+      npc2: "/assets/npc/villager_green.png",
+      npc3: "/assets/npc/villager_blue.png",
+      npc4: "/assets/npc/sage_purple.png",
+      npc5: "/assets/npc/guard_teal.png",
+    },
     json: { map: mapSpecDataURI },
   })
   .then(() => {
+    const base = assets.getJSON<{
+      width: number;
+      height: number;
+      tileSize: number;
+      columns: number;
+    }>("map");
+
     const spec = assets.getJSON<{
       width: number;
       height: number;
       tileSize: number;
       columns: number;
     }>("map");
+
+    const npc1 = new SpriteSheet(assets.getImage("npc1"), 16, 16, 3);
+    const npc2 = new SpriteSheet(assets.getImage("npc2"), 16, 16, 3);
+    const npc3 = new SpriteSheet(assets.getImage("npc3"), 16, 16, 3);
+    const npc4 = new SpriteSheet(assets.getImage("npc4"), 16, 16, 3);
+    const npc5 = new SpriteSheet(assets.getImage("npc5"), 16, 16, 3);
+
+    const tiles = assets.getImage("tiles");
+
     const tileset = assets.getImage("tiles");
     const playerImage = assets.getImage("player");
 
@@ -106,7 +94,7 @@ assets
       tileMap.width * tileMap.tileSize,
       tileMap.height * tileMap.tileSize,
     );
-    const playerSheet = new SpriteSheet(playerImage, 16, 16, 2);
+    const playerSheet = new SpriteSheet(playerImage, PIXE_ZISE, PIXE_ZISE, 3);
     const isBlocked = (tx: number, ty: number) =>
       tileMap.isSolidTile(tx, ty) || interactions.isNPCTile(tx, ty);
     playerCharacter = new PlayerCharacter(
@@ -118,19 +106,38 @@ assets
       isBlocked,
     );
     interactions.addNPC(
-      new NPC(8, 4, tileMap.tileSize, "#66c2ff", [
+      new NPC(8, 4, tileMap.tileSize, npc1, null, "down", [
         "Hola, aventurero.",
         "Pulsa Z para avanzar.",
         "Suerte en tu viaje.",
       ]),
     );
     interactions.addNPC(
-      new NPC(12, 10, tileMap.tileSize, "#ff6699", [
+      new NPC(12, 10, tileMap.tileSize, npc2, null, "left", [
         "Dicen que hay un tesoro al norte.",
         "Pero el muro es alto.",
         "Busca un desvío.",
       ]),
     );
+    interactions.addNPC(
+      new NPC(6, 12, tileMap.tileSize, npc3, null, "right", [
+        "¿Has visto al sabio?",
+        "Suele pasear por el sur.",
+      ]),
+    );
+    interactions.addNPC(
+      new NPC(15, 6, tileMap.tileSize, npc4, null, "up", [
+        "Conocimiento es poder.",
+        "Escucha al viento.",
+      ]),
+    );
+    interactions.addNPC(
+      new NPC(20, 8, tileMap.tileSize, npc5, null, "down", [
+        "Zona restringida.",
+        "No cruces la muralla.",
+      ]),
+    );
+
     ready = true;
   });
 
@@ -164,7 +171,9 @@ function render() {
       npc.draw(bctx, camera.x, camera.y);
     }
     playerCharacter.draw(bctx, camera.x, camera.y);
-    interactions.draw(bctx, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+    bctx.setTransform(1, 0, 0, 1, 0, 0);
+    bctx.globalAlpha = 1;
+    interactions.draw(bctx, back.width, back.height);
     bctx.strokeStyle = "rgba(255,255,255,0.06)";
     for (let i = 0; i <= VIEWPORT_WIDTH; i += 16) {
       bctx.beginPath();

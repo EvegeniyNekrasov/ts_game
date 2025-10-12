@@ -37,7 +37,7 @@ export class PlayerCharacter {
     this.isStepping = false;
     this.tilesPerSecond = tilesPerSecond;
     this.facing = "down";
-    this.animator = new SpriteAnimator(spriteSheet, 2, 8);
+    this.animator = new SpriteAnimator(spriteSheet, 3, 8);
     this.isBlocked = isBlocked;
   }
 

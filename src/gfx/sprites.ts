@@ -12,7 +12,7 @@ export class SpriteSheet {
     this.image = image;
     this.frameWidth = frameWidth;
     this.frameHeight = frameHeight;
-    this.columns = columns;
+    this.columns = columns || Math.floor(this.image.width / this.frameWidth);
   }
   drawFrame(
     ctx: CanvasRenderingContext2D,
@@ -54,15 +54,18 @@ export class SpriteAnimator {
     this.playing = false;
   }
   play(row: number) {
-    if (this.currentRow !== row) this.frame = 0;
+    if (this.currentRow !== row) this.frame = 1;
     this.currentRow = row;
     this.playing = true;
   }
   stop() {
     this.playing = false;
+    this.frame = 0;
   }
   update(dt: number) {
     if (!this.playing) return;
+    if (this.playing && this.framesPerRow === 3 && this.frame === 0)
+      this.frame = 1;
     this.elapsed += dt;
     const step = 1 / this.fps;
     while (this.elapsed >= step) {
