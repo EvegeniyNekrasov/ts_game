@@ -1,8 +1,9 @@
 import { type DialogUI } from "../ui/dialog/box.js";
 import { type Tilemap } from "../gfx/tilemap.js";
 import { type PlayerCharacter } from "./player.js";
-
+import { GameState } from "../state/game.js";
 import { type Trigger, type FacingDirection } from "../types/index.js";
+import { TileId } from "../utils/enums.js";
 
 export class TriggerController {
   triggers: Trigger[];
@@ -38,11 +39,28 @@ export class TriggerController {
       if (t.x === f.x && t.y === f.y) {
         switch (t.type) {
           case "door": {
-            if (t.opened) {
-              tilemap.setGroundAt(t.x, t.y, 2);
-              tilemap.setCollisionAt(t.x, t.y, true);
-              t.opened = false;
+            if (t.opened) return;
+
+            if (t.requiresItem && !GameState.instance.hasItem(t.requiresItem)) {
+              const deny =
+                t.denyText && t.denyText.length
+                  ? t.denyText
+                  : ["Necesitas una llave"];
+              dialogue.open(ctx, deny, viewportW, viewportH);
               return;
+            }
+
+            if (t.requiresItem && t.consumeItem) {
+              if (
+                !GameState.instance.consumeItem(t.requiresItem, TileId.WALL)
+              ) {
+                const deny =
+                  t.denyText && t.denyText.length
+                    ? t.denyText
+                    : ["No puedes abrirla"];
+                dialogue.open(ctx, deny, viewportW, viewportH);
+                return;
+              }
             }
             tilemap.setCollisionAt(t.x, t.y, false);
             tilemap.setGroundAt(t.x, t.y, t.toGroundId);
@@ -57,7 +75,8 @@ export class TriggerController {
               return;
             }
             t.opened = true;
-            tilemap.setGroundAt(t.x, t.y, 5);
+            GameState.instance.addItem(t.item, TileId.WALL);
+            tilemap.setGroundAt(t.x, t.y, TileId.CHEST_OPEN);
             dialogue.open(ctx, t.openText, viewportW, viewportH);
             return;
           }

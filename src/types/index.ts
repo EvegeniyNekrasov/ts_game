@@ -49,6 +49,10 @@ export type TriggerDoor = {
   toGroundId: number;
   openText: string[];
   opened?: boolean;
+  requiresItem?: string;
+  consumeItem?: boolean;
+  denyText?: string[];
+  setFlag?: string;
 };
 export type TriggerChest = {
   type: "chest";
@@ -57,5 +61,6 @@ export type TriggerChest = {
   item: string;
   openText: string[];
   opened?: boolean;
+  setFlag?: string;
 };
 export type Trigger = TriggerDoor | TriggerChest;

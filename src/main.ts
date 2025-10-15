@@ -19,6 +19,7 @@ const screen_canvas = document.getElementById("screen") as HTMLCanvasElement;
 const ctx = screen_canvas.getContext("2d") as CanvasRenderingContext2D;
 const back = document.createElement("canvas");
 const bctx = back.getContext("2d") as CanvasRenderingContext2D;
+
 back.width = VIEWPORT_WIDTH;
 back.height = VIEWPORT_HEIGHT;
 

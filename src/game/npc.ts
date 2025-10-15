@@ -30,15 +30,18 @@ export class NPC {
     this.facing = facing;
     this.dialog = dialog;
   }
+
+  private readonly rowMap: Record<FacingDirection, number> = {
+    down: 0,
+    left: 1,
+    right: 2,
+    up: 3,
+  };
+
   private row(): number {
-    return this.facing === "down"
-      ? 0
-      : this.facing === "left"
-        ? 1
-        : this.facing === "right"
-          ? 2
-          : 3;
+    return this.rowMap[this.facing];
   }
+
   draw(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number) {
     const dx = Math.floor(this.pixelX - cameraX);
     const dy = Math.floor(this.pixelY - cameraY);
