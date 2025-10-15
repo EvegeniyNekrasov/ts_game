@@ -19,6 +19,7 @@ export class Input {
       cancel: ["KeyX", "Backspace"],
       menu: ["Escape"],
       debug: ["Tab"],
+      inventory: ["KeyI"],
     };
     window.addEventListener("keydown", (e: KeyboardEvent) => {
       if (!this.down.has(e.code)) this.pressed.add(e.code);

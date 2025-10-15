@@ -10,6 +10,8 @@ import { InteractionController } from "./game/interact.js";
 import { buildWorld } from "./game/world.js";
 import { type TriggerController } from "./game/triggers.js";
 import { type MapJSON } from "./types/index.js";
+import { HUD } from "./ui/hud.js";
+import { InventoryUI } from "./ui/inventory.js";
 
 const VIEWPORT_WIDTH = 320;
 const VIEWPORT_HEIGHT = 220;
@@ -27,6 +29,8 @@ const input = new Input();
 const debug = new DebugOverlay();
 const assets = new Assets();
 const interactions = new InteractionController();
+const hud = new HUD();
+const inventory = new InventoryUI();
 
 let scale = 1;
 function resize() {
@@ -136,9 +140,17 @@ assets
 
 function update(dt: number) {
   if (ready) {
-    if (interactions.dialogue.active) {
+    if (inventory.active) {
+      if (input.actionPressed("inventory")) inventory.close();
+      inventory.update(
+        input.actionPressed("action"),
+        input.actionPressed("cancel"),
+      );
+    } else if (interactions.dialogue.active) {
       interactions.update(input, dt);
     } else {
+      if (input.actionPressed("inventory"))
+        inventory.open(back.width, back.height);
       playerCharacter.update(input, dt);
       interactions.tryInteract(
         playerCharacter,
@@ -177,6 +189,8 @@ function render() {
     tileMap.draw(bctx, camera.x, camera.y, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
     for (const npc of interactions.npcs) npc.draw(bctx, camera.x, camera.y);
     playerCharacter.draw(bctx, camera.x, camera.y);
+    hud.draw(bctx);
+    if (inventory.active) inventory.draw(bctx);
 
     const f = triggers.facingCell(
       playerCharacter.tileX,

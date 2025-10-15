@@ -6,7 +6,8 @@ export type Action =
   | "action"
   | "cancel"
   | "menu"
-  | "debug";
+  | "debug"
+  | "inventory";
 
 export type AssetsManifest = {
   images?: Record<string, string>;
